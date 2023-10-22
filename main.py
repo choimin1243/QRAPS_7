@@ -1,4 +1,4 @@
-from fastapi import  UploadFile, File
+from fastapi import UploadFile, File
 from fastapi.templating import Jinja2Templates
 from openpyxl import Workbook  # 추가된 부분
 import re
@@ -12,16 +12,16 @@ import json
 from fastapi import APIRouter
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Form, Request, Depends
-from fastapi import APIRouter,Request
-from package import get_all_todos_from_db,hello
+from fastapi import APIRouter, Request
+from package import get_all_todos_from_db, hello
 from database import SessionLocal  # SessionLocal을 불러옴
+
 db = SessionLocal()
-
-
 
 appends = APIRouter()
 templates = Jinja2Templates(directory="templates")
 templates.env.globals.update(enumerate=enumerate)
+
 
 def flatten(lst):
     result = []
@@ -34,24 +34,23 @@ def flatten(lst):
 
 
 def filterate(listly):
-    database_list=hello(db)
-    listly=flatten(listly)
-    list_result=' '.join(map(str, listly))
-    x=""
+    database_list = hello(db)
+    listly = flatten(listly)
+    list_result = ' '.join(map(str, listly))
+    x = ""
     for i in range(len(database_list)):
-        finder=database_list[i]
+        finder = database_list[i]
         if finder in list_result:
-            x= finder
+            x = finder
             break
 
     return x
+
 
 # HTML 템플릿을 렌더링하는 엔드포인트
 @appends.get("/")
 async def render_upload_form(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
-
 
 
 # @app.post("/send-list/")
@@ -78,26 +77,25 @@ def wat_resize(wat):
     matcheses = re.findall(pattern, wat, re.IGNORECASE)
 
     패턴즈 = r"kw"
-    m=r'mw'
+    m = r'mw'
     매치들 = re.findall(패턴즈, wat, re.IGNORECASE)
     if 매치들:
         if 매치:
             분자 = int(매치.group(1))
             분모 = int(매치.group(2))
             소수 = 분자 / 분모
-            결과_문자열 = float(소수)*1000
+            결과_문자열 = float(소수) * 1000
 
             return 결과_문자열
 
         else:
             패턴 = r"\d+"
             추출된_숫자들 = re.findall(패턴, wat, re.IGNORECASE)
-            return float(추출된_숫자들[0])*1000
+            return float(추출된_숫자들[0]) * 1000
 
-
-    와트매치=re.findall(pp, wat, re.IGNORECASE)
+    와트매치 = re.findall(pp, wat, re.IGNORECASE)
     if 와트매치:
-        print(wat,"@@)")
+        print(wat, "@@)")
         if 매치:
             분자 = int(매치.group(1))
             분모 = int(매치.group(2))
@@ -111,23 +109,21 @@ def wat_resize(wat):
             패턴 = r"\d+"
             추출된_숫자들 = re.findall(패턴, wat, re.IGNORECASE)
             return 추출된_숫자들[0]
-    m=r'mw'
-    MW=re.findall(m, wat, re.IGNORECASE)
+    m = r'mw'
+    MW = re.findall(m, wat, re.IGNORECASE)
 
     if MW:
         if 매치:
             분자 = int(매치.group(1))
             분모 = int(매치.group(2))
             소수 = 분자 / 분모
-            print("~~~",소수)
-            return float(소수)*0.001
+            print("~~~", 소수)
+            return float(소수) * 0.001
 
         else:
             패턴 = r"\d+"
             추출된_숫자들 = re.findall(패턴, wat, re.IGNORECASE)
-            return float(추출된_숫자들[0])*0.001
-
-
+            return float(추출된_숫자들[0]) * 0.001
 
 
 def om(rest):
@@ -135,54 +131,39 @@ def om(rest):
     patternk = r'(\d+\.\d+|\d+)(?=\s*[KΩ|㏀])'
     patternm = r'\d+\s*m[Ω|Ω]'
     patternss = r'\d+\s*[^mM]㏁|\d+\s*MΩ'
-    if re.search(pattern,rest):
-        print(re.findall(pattern,rest))
-        return float(re.findall(pattern,rest)[0])*0.001
-    if re.search(patternk,rest):
+    if re.search(pattern, rest):
+        print(re.findall(pattern, rest))
+        return float(re.findall(pattern, rest)[0]) * 0.001
+    if re.search(patternk, rest):
         return float(re.findall(patternk, rest)[0])
-    if re.search(patternm,rest):
+    if re.search(patternm, rest):
         patternr = r"\d+"
-        print(re.findall(patternr,rest)[0])
-        return float(re.findall(patternr,rest)[0])*0.000001
+        print(re.findall(patternr, rest)[0])
+        return float(re.findall(patternr, rest)[0]) * 0.000001
     if re.search(patternss, rest):
         patternr = r"\d+"
         print(rest)
-        return float(re.findall(patternr,rest)[0])*1000
-
-
+        return float(re.findall(patternr, rest)[0]) * 1000
 
 
 def package(sheet):
     print(sheet)
 
 
-
-
-
-
-
-
-
-
-
 @appends.post("/send-list/")
-async def send_list(request: Request, selected_columns: str = Form(...),content_items:str = Form(...), encoded_data:str=Form(...)):
+async def send_list(request: Request, selected_columns: str = Form(...), content_items: str = Form(...),
+                    encoded_data: str = Form(...)):
     selected_columns = json.loads(selected_columns)
-    content_items=json.loads(content_items)
-    encoded_data=json.loads(encoded_data)
+    content_items = json.loads(content_items)
+    encoded_data = json.loads(encoded_data)
 
-
-    number_to=len(content_items)
+    number_to = len(content_items)
     output_excel = BytesIO()
     work = Workbook()
 
-
     for charact in content_items:
-        data_list = encoded_data# JSON 문자열을 리스트로 변환
+        data_list = encoded_data  # JSON 문자열을 리스트로 변환
         work.create_sheet(title=charact)
-
-
-
 
         workbook = openpyxl.Workbook()
         sheet = workbook.active
@@ -205,11 +186,6 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                 row_data.append([cell.value])
             data.append(row_data)
 
-
-
-
-
-
         for row in sheet.iter_rows(min_row=1, min_col=1, max_row=last_row, max_col=last_column):
             # 한 행의 데이터를 저장할 리스트를 생성합니다.
             for idx, cell in enumerate(row, 1):
@@ -218,11 +194,8 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                     if cell.value == "package":
                         part_number = idx
 
-
         if part_number == []:
-            part_number=500
-
-
+            part_number = 500
 
         def remove_duplicates(input_list):
             return list(set(input_list))
@@ -298,13 +271,12 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                             if matches:
                                 voltage_number = 2
                                 matches_num = re.findall(patternv, voltage_value, re.IGNORECASE)
-                                result_data[k].append(float(matches_num[0])*1000)
+                                result_data[k].append(float(matches_num[0]) * 1000)
 
                     break
 
                 except:
                     pass
-
 
         if voltage_number == 2:
             max_columns = max(len(row) for row in result_data)
@@ -312,7 +284,6 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                 if len(row) < max_columns:
                     row.append("None")
             list_table_number.append("VOLTAGE")
-
 
         for i in range(len(list_row)):
             data_item = data[list_row[i]]
@@ -330,11 +301,11 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                             patternkw = r"(\w+)\d*KW"
                             patternrw = r"(\w+)\d*W"
                             matchkw = re.search(patternkw, wat, re.IGNORECASE)
-                            matchw=re.search(patternrw, wat, re.IGNORECASE)
+                            matchw = re.search(patternrw, wat, re.IGNORECASE)
                             numfrac = r"\d+/\d+"
 
                             if result_data[k][0] == list_row[i]:
-                                a=wat_resize(wat)
+                                a = wat_resize(wat)
                                 result_data[k].append(a)
 
                         break
@@ -366,8 +337,15 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                                 result_data[k].append(tolerance_value)
                         break
                     else:
-                        resistance_value = ""
-
+                        pattern_percent = r'(\d+)%'
+                        match3 = re.search(pattern_percent, data_item[s][0])
+                        if match3:
+                            tolerance_number = 2
+                            tolerance_value2 = match3.group(0)
+                            for k in range(len(result_data)):
+                                if result_data[k][0] == list_row[i]:
+                                    result_data[k].append(tolerance_value2)
+                            break
 
                 except:
                     resistance_value = ""
@@ -391,11 +369,11 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                         resistance_number = 2
                         resistance_value = matchnorm.group(0)
                         patternmega = r'㏁'
-                        patternmili= r'mΩ'
-                        print("~",resistance_value)
+                        patternmili = r'mΩ'
+                        print("~", resistance_value)
                         for k in range(len(result_data)):
                             if result_data[k][0] == list_row[i]:
-                                pattern =r"(?<!\w)(\d+)\s*Ω"
+                                pattern = r"(?<!\w)(\d+)\s*Ω"
                                 patterned = r'[KΩ|㏀]'
                                 result_data[k].append(om(resistance_value))
 
@@ -413,7 +391,6 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
                 if len(row) < max_columns:
                     row.append("None")
             list_table_number.append("RESISTANCE")
-
 
         temp_number = 1
 
@@ -482,25 +459,23 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
         #
         #
         #
-        if part_number!=500:
+        if part_number != 500:
             for i in range(len(list_row)):
                 data_item = data[list_row[i]]
                 for k in range(len(result_data)):
                     if result_data[k][0] == list_row[i]:
                         result_data[k].append(data_item[part_number - 1][0])
-                        
-                        
-        if part_number==500:
+
+        if part_number == 500:
             for i in range(len(list_row)):
                 data_item = data[list_row[i]]
                 for k in range(len(result_data)):
                     if result_data[k][0] == list_row[i]:
-                        strings=filterate(data_item)
-                        print(k,strings)
+                        strings = filterate(data_item)
+                        print(k, strings)
                         result_data[k].append(strings)
 
-
-        print("test",result_data)
+        print("test", result_data)
 
         print("end@@@")
         list_table_number.append("PACKAGE")
@@ -512,7 +487,6 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
             data_item = data[list_row[i]]
             for s in range(len(data_item)):
                 try:
-                    tolerance_value = ""
                     match = re.search(pattern_caps, data_item[s][0], re.IGNORECASE)
                     if match:
                         Grade = 2
@@ -540,13 +514,11 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
             if row[1].isdigit():
                 row[1] = character + row[1]
 
-
         for row in result_data:
             num = len(character)
             row[0] = int(row[1][num:])
 
         result_data.insert(0, list_table_number)
-
 
         df = pd.DataFrame(result_data[1:], columns=result_data[0])
 
@@ -557,8 +529,7 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
 
         sorted_df = df.sort_values(by='No')
 
-
-        print("@@@",sorted_df)
+        print("@@@", sorted_df)
         if character == "R":
             column_order = A_table
         else:
@@ -568,13 +539,9 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
             if column not in sorted_df:
                 sorted_df[column] = float("nan")  # 모든 값은 NaN으로 설정합니다.
 
-
-
-
-
-        if character=="R":
+        if character == "R":
             sorted_df.loc[sorted_df['PACKAGE'] == '0402', 'RESISTANCE'] = 0.031
-            sorted_df.loc[sorted_df['PACKAGE'] ==int('0402'), 'RESISTANCE'] = 0.031
+            sorted_df.loc[sorted_df['PACKAGE'] == int('0402'), 'RESISTANCE'] = 0.031
 
             sorted_df.loc[sorted_df['PACKAGE'] == '0603', 'RESISTANCE'] = 0.05
             sorted_df.loc[sorted_df['PACKAGE'] == int('0603'), 'RESISTANCE'] = 0.05
@@ -606,32 +573,22 @@ async def send_list(request: Request, selected_columns: str = Form(...),content_
         for row in dataframe_to_rows(sorted_df_by_column_order, index=False, header=True):
             charact_sheet.append(row)
 
-
-
-
-
-
-
-
-
-
     work.save(output_excel)
 
     # BytesIO의 파일 포인터를 처음으로 이동시킴
     output_excel.seek(0)
 
     return StreamingResponse(output_excel,
-                                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                 headers={"Content-Disposition": "attachment; filename=result.xlsx"})
+                             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": "attachment; filename=result.xlsx"})
 
 
 @appends.post("/upload/")
-async def upload_excel_file(request: Request,file: UploadFile = File(...)):
-    file_path =file.filename
+async def upload_excel_file(request: Request, file: UploadFile = File(...)):
+    file_path = file.filename
     print(file_path)
     with open(file_path, "wb") as temp_file:
         temp_file.write(file.file.read())
-
 
     file_data = []
     workbook = openpyxl.load_workbook(file_path)
@@ -639,13 +596,11 @@ async def upload_excel_file(request: Request,file: UploadFile = File(...)):
     for row in sheet.iter_rows(values_only=True):
         file_data.append(row)
 
-
     encoded_file_data = json.dumps(file_data)  # Convert the list to JSON string
 
     # 결과를 템플릿에 전달하여 렌더링
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "file_data": file_data, "encoded_data":encoded_file_data, "file_path":file_path}
+        {"request": request, "file_data": file_data, "encoded_data": encoded_file_data, "file_path": file_path}
     )
-
 
