@@ -15,12 +15,16 @@ from fastapi import FastAPI, Form, Request, Depends
 from fastapi import APIRouter, Request
 from package import get_all_todos_from_db, hello
 from database import SessionLocal  # SessionLocal을 불러옴
+from rcpackage import hello2
+from Lpackage import get_all_Lpackage_package_from_db
+
 
 db = SessionLocal()
 
 appends = APIRouter()
 templates = Jinja2Templates(directory="templates")
 templates.env.globals.update(enumerate=enumerate)
+
 
 
 def flatten(lst):
@@ -34,9 +38,11 @@ def flatten(lst):
 
 
 def filterate(listly):
-    database_list = hello(db)
+    database_list = hello2(db)
     listly = flatten(listly)
     list_result = ' '.join(map(str, listly))
+    print(database_list,"@@@")
+    print(list_result,"~~~")
     x = ""
     for i in range(len(database_list)):
         finder = database_list[i]
@@ -50,7 +56,36 @@ def filterate(listly):
 # HTML 템플릿을 렌더링하는 엔드포인트
 @appends.get("/")
 async def render_upload_form(request: Request):
+    original_list=get_all_Lpackage_package_from_db(db)
+    modified_list = [item[0].replace('(', '') for item in original_list]
+    print(modified_list)
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+def get_Lpackage_filter_Lpack(listly):
+    original_list=get_all_Lpackage_package_from_db(db)
+    modified_list = [item[0].replace('(', '') for item in original_list]
+
+    listly=flatten(listly)
+    list_result=' '.join((str,listly))
+
+    x=""
+    for i in range(len(modified_list)):
+        finder=modified_list[i]
+        if finder in list_result:
+            x= finder
+            break
+    return x
+
+
+
+
+
+
+
+
+
+
 
 
 # @app.post("/send-list/")
@@ -177,8 +212,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         data = []
         location_column_index = selected_columns
-        part_number = []
-
+        part_number=None
         for row in sheet.iter_rows(min_row=1, min_col=1, max_row=last_row, max_col=last_column):
             # 한 행의 데이터를 저장할 리스트를 생성합니다.
             row_data = []
@@ -194,9 +228,10 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                     if cell.value == "package":
                         part_number = idx
 
-        if part_number == []:
+        if part_number == None:
             part_number = 500
 
+        print(part_number,"@@@~~~~~")
         def remove_duplicates(input_list):
             return list(set(input_list))
 
@@ -459,26 +494,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
         #
         #
         #
-        if part_number != 500:
-            for i in range(len(list_row)):
-                data_item = data[list_row[i]]
-                for k in range(len(result_data)):
-                    if result_data[k][0] == list_row[i]:
-                        result_data[k].append(data_item[part_number - 1][0])
 
-        if part_number == 500:
-            for i in range(len(list_row)):
-                data_item = data[list_row[i]]
-                for k in range(len(result_data)):
-                    if result_data[k][0] == list_row[i]:
-                        strings = filterate(data_item)
-                        print(k, strings)
-                        result_data[k].append(strings)
-
-        print("test", result_data)
-
-        print("end@@@")
-        list_table_number.append("PACKAGE")
 
         pattern_caps = r"(X7R|X5R|COG|NPO|X5S|X6S|C0G)"
 
@@ -510,6 +526,38 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
             list_table_number.append("GRADE")
 
+
+        package_number=1
+
+        if character=="R" or character=="C":
+            package_number = 2
+            for i in range(len(list_row)):
+                data_item = data[list_row[i]]
+                for k in range(len(result_data)):
+                    if result_data[k][0] == list_row[i]:
+                        strings = filterate(data_item)
+                        print(k, strings)
+                        result_data[k].append(strings)
+
+        if package_number==2:
+            list_table_number.append("PACKAGE")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         for row in result_data:
             if row[1].isdigit():
                 row[1] = character + row[1]
@@ -522,17 +570,22 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         df = pd.DataFrame(result_data[1:], columns=result_data[0])
 
-        # 첫 번째 열을 기준으로 정렬
+        print(df,"!!!!!!!!!!!!")
 
-        A_table = ["No", "REF NO", "PACKAGE", "RATED_POWER[W]", "TOLERANCE", "RESISTANCE"]
-        B_table = ["No", "REF NO", "PACKAGE", "CAPACITANCE", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
+
+
+        A_table = ["No", "REF NO","PACKAGE" ,"RATED_POWER[W]", "TOLERANCE", "RESISTANCE"]
+        B_table = ["No", "REF NO","PACKAGE","CAPACITANCE", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
 
         sorted_df = df.sort_values(by='No')
 
         print("@@@", sorted_df)
+
+
+
         if character == "R":
             column_order = A_table
-        else:
+        if character == "C":
             column_order = B_table
 
         for column in column_order:
@@ -540,29 +593,45 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                 sorted_df[column] = float("nan")  # 모든 값은 NaN으로 설정합니다.
 
         if character == "R":
-            sorted_df.loc[sorted_df['PACKAGE'] == '0402', 'RESISTANCE'] = 0.031
-            sorted_df.loc[sorted_df['PACKAGE'] == int('0402'), 'RESISTANCE'] = 0.031
+            sorted_df.loc[sorted_df['PACKAGE'] == '0402', 'RATED_POWER[W]'] = 0.031
+            sorted_df.loc[sorted_df['PACKAGE'] == int('0402'), 'RATED_POWER[W]'] = 0.031
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '0603', 'RESISTANCE'] = 0.05
-            sorted_df.loc[sorted_df['PACKAGE'] == int('0603'), 'RESISTANCE'] = 0.05
+            sorted_df.loc[sorted_df['PACKAGE'] == '0603', 'RATED_POWER[W]'] = 0.05
+            sorted_df.loc[sorted_df['PACKAGE'] == int('0603'), 'RATED_POWER[W]'] = 0.05
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '1005', 'RESISTANCE'] = 0.0625
-            sorted_df.loc[sorted_df['PACKAGE'] == int('1005'), 'RESISTANCE'] = 0.0625
+            sorted_df.loc[sorted_df['PACKAGE'] == '1005', 'RATED_POWER[W]'] = 0.0625
+            sorted_df.loc[sorted_df['PACKAGE'] == int('1005'), 'RATED_POWER[W]'] = 0.0625
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '1608', 'RESISTANCE'] = 0.1
-            sorted_df.loc[sorted_df['PACKAGE'] == int('1608'), 'RESISTANCE'] = 0.1
+            sorted_df.loc[sorted_df['PACKAGE'] == '1608', 'RATED_POWER[W]'] = 0.1
+            sorted_df.loc[sorted_df['PACKAGE'] == int('1608'), 'RATED_POWER[W]'] = 0.1
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '2012', 'RESISTANCE'] = 0.125
-            sorted_df.loc[sorted_df['PACKAGE'] == int('2012'), 'RESISTANCE'] = 0.125
+            sorted_df.loc[sorted_df['PACKAGE'] == '2012', 'RATED_POWER[W]'] = 0.125
+            sorted_df.loc[sorted_df['PACKAGE'] == int('1608'), 'RATED_POWER[W]'] = 0.125
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '3216', 'RESISTANCE'] = 0.25
-            sorted_df.loc[sorted_df['PACKAGE'] == int('3216'), 'RESISTANCE'] = 0.25
+            sorted_df.loc[sorted_df['PACKAGE'] == '3216', 'RATED_POWER[W]'] = 0.25
+            sorted_df.loc[sorted_df['PACKAGE'] == int('3216'), 'RATED_POWER[W]'] = 0.25
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '3225', 'RESISTANCE'] = 0.5
-            sorted_df.loc[sorted_df['PACKAGE'] == int('3225'), 'RESISTANCE'] = 0.5
+            sorted_df.loc[sorted_df['PACKAGE'] == '3225', 'RATED_POWER[W]'] = 0.33
+            sorted_df.loc[sorted_df['PACKAGE'] == int('3225'), 'RATED_POWER[W]'] = 0.33
 
-            sorted_df.loc[sorted_df['PACKAGE'] == '6432', 'RESISTANCE'] = 1
-            sorted_df.loc[sorted_df['PACKAGE'] == int('6432'), 'RESISTANCE'] = 1
+            sorted_df.loc[sorted_df['PACKAGE'] == '5025', 'RATED_POWER[W]'] = 0.66
+            sorted_df.loc[sorted_df['PACKAGE'] == int('5025'), 'RATED_POWER[W]'] = 0.66
+
+            sorted_df.loc[sorted_df['PACKAGE'] == '6432', 'RATED_POWER[W]'] = 1
+            sorted_df.loc[sorted_df['PACKAGE'] == int('6432'), 'RATED_POWER[W]'] = 1
+
+            sorted_df.loc[sorted_df['TOLERANCE'] == 'F', 'TOLERANCE'] = "1%"
+            sorted_df.loc[sorted_df['TOLERANCE'] == 'M', 'TOLERANCE'] = "20%"
+            sorted_df.loc[sorted_df['TOLERANCE'] == 'J', 'TOLERANCE'] = "5%"
+            sorted_df.loc[sorted_df['TOLERANCE'] == 'K', 'TOLERANCE'] = "5%"
+
+        if character == "C":
+            sorted_df.loc[(sorted_df['GRADE'] == 'Y5V') & (sorted_df['TOLERANCE'] == 'Z'), "TOLERANCE"] = "+80,-20%"
+            sorted_df.loc[(sorted_df['GRADE'] == 'X7R') & (sorted_df['TOLERANCE'] == 'K'), "TOLERANCE"] = "+10,-10%"
+            sorted_df.loc[(sorted_df['GRADE'] == 'X5R') & (sorted_df['TOLERANCE'] == 'K'), "TOLERANCE"] = "+10,-10%"
+            sorted_df.loc[(sorted_df['GRADE'] == 'NPO') & (sorted_df['TOLERANCE'] == 'F'), "TOLERANCE"] = "1%,-1%"
+            sorted_df.loc[(sorted_df['GRADE'] == 'NPO') & (sorted_df['TOLERANCE'] == 'G'), "TOLERANCE"] = "2%,-2%"
+            sorted_df.loc[(sorted_df['GRADE'] == 'NPO') & (sorted_df['TOLERANCE'] == 'J'), "TOLERANCE"] = "5%,-5%"
 
         else:
             pass
@@ -603,4 +672,3 @@ async def upload_excel_file(request: Request, file: UploadFile = File(...)):
         "index.html",
         {"request": request, "file_data": file_data, "encoded_data": encoded_file_data, "file_path": file_path}
     )
-
