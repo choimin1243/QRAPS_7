@@ -16,7 +16,7 @@ from fastapi import APIRouter, Request
 from package import get_all_todos_from_db, hello
 from database import SessionLocal  # SessionLocal을 불러옴
 from rcpackage import hello2
-from Lpackage import get_all_Lpackage_package_from_db
+from Lpackage import get_all_Lpackage_package_from_db, get_all_Lpackage_partnumber_from_db
 
 
 db = SessionLocal()
@@ -59,49 +59,62 @@ async def render_upload_form(request: Request):
     original_list=get_all_Lpackage_package_from_db(db)
     modified_list = [item[0].replace('(', '') for item in original_list]
     print(modified_list)
+
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 def get_Lpackage_filter_Lpack(listly):
     original_list=get_all_Lpackage_package_from_db(db)
-    modified_list = [item[0].replace('(', '') for item in original_list]
-
+    modified_list = [item[0].replace('(', '').strip() for item in original_list]
     listly=flatten(listly)
-    list_result=' '.join((str,listly))
-
+    list_result = ','.join(map(str, listly))
     x=""
+    modified_list = [값 for 값 in modified_list if 값 != 'None']
+    print(modified_list,"~~~~~~~~~~~~~~~~~~!!!!!!!!!")
+
     for i in range(len(modified_list)):
         finder=modified_list[i]
-        if finder in list_result:
+
+        if finder in list_result and finder!="None" and finder!="":
             x= finder
             break
     return x
 
 
+def get_Lpartnmuber_filter_Lpack(listly):
+    original_list=get_all_Lpackage_partnumber_from_db(db)
+    modified_list = [item[0].replace('(', '') for item in original_list]
+    listly=flatten(listly)
+    print(listly,"flatten")
+    x=""
+    for i in range(len(modified_list)):
+        finder=modified_list[i]
+        finder=finder.strip()
+        if finder in listly:
+            x= finder
+            break
+    return x
 
 
+def UH_om(listly):
+    listly=flatten(listly)
+    list_result = ' '.join(map(str, listly))
+    패턴 = r'(\d+)[Uu][Hh]'
+
+    # re.search()를 사용하여 검출 여부 확인
+    매치 = re.search(패턴, list_result)
+    x=""
+    if 매치:
+        숫자_부분 = 매치.group(1)
+        x=숫자_부분+"UH"
+        print("검출되었습니다:", 숫자_부분 + "UH")
+    else:
+        print("검출되지 않았습니다.")
 
 
+    return x
 
 
-
-
-
-
-# @app.post("/send-list/")
-# async def send_list(request: Request, selected_columns: str = Form(...), content_items: str = Form(...), encoded_data: str = Form(...)):
-#     workbook = openpyxl.Workbook()
-#     sheet = workbook.active
-#     sheet["A1"] = "Hello"
-#     # ... 데이터 추가 작업 ...
-#
-#     # 엑셀 워크북을 바이트로 저장
-#     output_excel = io.BytesIO()
-#     workbook.save(output_excel)
-#     output_excel.seek(0)  # 파일 위치를 처음으로 되돌림
-#
-#     # 메모리에 생성된 엑셀 파일을 스트리밍하여 사용자에게 전송
-#     return FileResponse("교원.xlsx", media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="output.xlsx")
 
 
 def wat_resize(wat):
@@ -394,6 +407,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         patternom = r"(?:,\s*)?(\d+(?:\.\d+)?)(?:\s*(?:㏀|Ω|k㏀|kΩ|mΩ|㏁|MΩ))\s*\*?\d?"
 
+
         for i in range(len(list_row)):
             data_item = data[list_row[i]]
             for s in range(len(data_item)):
@@ -539,8 +553,44 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                         print(k, strings)
                         result_data[k].append(strings)
 
+
+
+        part_number_L=1
+
+
+        om_L=1
+
+        if character=="L":
+            package_number=2
+            part_number_L = 2
+            om_L = 2
+            for i in range(len(list_row)):
+                data_item=data[list_row[i]]
+                for k in range(len(result_data)):
+                    if result_data[k][0]==list_row[i]:
+                        strings=get_Lpackage_filter_Lpack(data_item)
+                        result_data[k].append(strings)
+                        strings2=get_Lpartnmuber_filter_Lpack(data_item)
+                        result_data[k].append(strings2)
+                        result_data[k].append(UH_om(data_item))
+
+                        print("^^^^^")
+
+
+
+
+
+
+
+
         if package_number==2:
             list_table_number.append("PACKAGE")
+
+        if part_number_L==2:
+            list_table_number.append("Partnumber")
+
+        if om_L==2:
+            list_table_number.append("Inductance[uH]")
 
 
 
@@ -567,15 +617,19 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             row[0] = int(row[1][num:])
 
         result_data.insert(0, list_table_number)
+        print(result_data)
 
         df = pd.DataFrame(result_data[1:], columns=result_data[0])
 
-        print(df,"!!!!!!!!!!!!")
 
 
 
         A_table = ["No", "REF NO","PACKAGE" ,"RATED_POWER[W]", "TOLERANCE", "RESISTANCE"]
         B_table = ["No", "REF NO","PACKAGE","CAPACITANCE", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
+
+        C_table = ["No", "REF NO","PACKAGE","Partnumber","Inductance[uH]", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
+
+
 
         sorted_df = df.sort_values(by='No')
 
@@ -587,6 +641,12 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             column_order = A_table
         if character == "C":
             column_order = B_table
+
+
+        if character=="L":
+            column_order=C_table
+
+
 
         for column in column_order:
             if column not in sorted_df:
